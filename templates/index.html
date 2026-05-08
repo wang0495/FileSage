@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FileSage - 智能文件管家</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <!-- 粒子背景画布 -->
+    <canvas id="particleCanvas"></canvas>
+
+    <!-- Toast 通知容器 -->
+    <div id="toastContainer"></div>
+
+    <!-- 主布局 -->
+    <div class="app-layout">
+        <!-- 侧边栏 -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-hat-wizard"></i>
+                    <span class="logo-text">FileSage</span>
+                </div>
+                <p class="logo-subtitle">智能文件管家</p>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-page="dashboard">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>仪表盘</span>
+                </a>
+                <a href="#" class="nav-item" data-page="files">
+                    <i class="fas fa-folder-open"></i>
+                    <span>文件管理</span>
+                </a>
+                <a href="#" class="nav-item" data-page="upload">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span>上传文件</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-section">
+                <h3 class="section-title">文件分类</h3>
+                <div class="category-list" id="categoryList">
+                    <a href="#" class="category-item active" data-category="">
+                        <i class="fas fa-globe"></i>
+                        <span>全部文件</span>
+                        <span class="category-count" id="countAll">0</span>
+                    </a>
+                    <a href="#" class="category-item" data-category="image">
+                        <i class="fas fa-image"></i>
+                        <span>图片</span>
+                        <span class="category-count" id="countImage">0</span>
+                    </a>
+                    <a href="#" class="category-item" data-category="document">
+                        <i class="fas fa-file-alt"></i>
+                        <span>文档</span>
+                        <span class="category-count" id="countDocument">0</span>
+                    </a>
+                    <a href="#" class="category-item" data-category="video">
+                        <i class="fas fa-video"></i>
+                        <span>视频</span>
+                        <span class="category-count" id="countVideo">0</span>
+                    </a>
+                    <a href="#" class="category-item" data-category="audio">
+                        <i class="fas fa-music"></i>
+                        <span>音频</span>
+                        <span class="category-count" id="countAudio">0</span>
+                    </a>
+                    <a href="#" class="category-item" data-category="code">
+                        <i class="fas fa-code"></i>
+                        <span>代码</span>
+                        <span class="category-count" id="countCode">0</span>
+                    </a>
+                    <a href="#" class="category-item" data-category="archive">
+                        <i class="fas fa-file-archive"></i>
+                        <span>压缩包</span>
+                        <span class="category-count" id="countArchive">0</span>
+                    </a>
+                    <a href="#" class="category-item" data-category="other">
+                        <i class="fas fa-file"></i>
+                        <span>其他</span>
+                        <span class="category-count" id="countOther">0</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="storage-info">
+                    <div class="storage-bar">
+                        <div class="storage-fill" id="storageFill"></div>
+                    </div>
+                    <span class="storage-text" id="storageText">0 B 已使用</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 顶部栏 -->
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button class="menu-toggle" id="menuToggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInput" placeholder="搜索文件..." autocomplete="off">
+                        <button class="search-clear" id="searchClear" style="display:none;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <button class="theme-toggle" id="themeToggle" title="切换主题">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <button class="topbar-btn" id="refreshBtn" title="刷新">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <button class="topbar-btn upload-trigger" id="uploadTrigger" title="上传文件">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- 页面内容 -->
+            <div class="page-content">
+                <!-- 仪表盘页面 -->
+                <section class="page active" id="pageDashboard">
+                    <div class="page-header">
+                        <h1 class="page-title">
+                            <i class="fas fa-chart-pie"></i>
+                            仪表盘
+                        </h1>
+                    </div>
+
+                    <!-- 统计卡片 -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon" style="--stat-color: #a855f7;">
+                                <i class="fas fa-files"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="statTotalFiles">0</span>
+                                <span class="stat-label">总文件数</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="--stat-color: #3b82f6;">
+                                <i class="fas fa-database"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="statTotalSize">0 B</span>
+                                <span class="stat-label">总大小</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="--stat-color: #10b981;">
+                                <i class="fas fa-image"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="statImageCount">0</span>
+                                <span class="stat-label">图片文件</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="--stat-color: #f59e0b;">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="statDocCount">0</span>
+                                <span class="stat-label">文档文件</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 图表区域 -->
+                    <div class="charts-grid">
+                        <!-- 饼图 -->
+                        <div class="chart-card">
+                            <h3 class="chart-title">文件类型分布</h3>
+                            <div class="pie-chart-container">
+                                <div class="pie-chart" id="pieChart">
+                                    <div class="pie-center">
+                                        <span class="pie-center-value" id="pieCenterValue">0</span>
+                                        <span class="pie-center-label">文件</span>
+                                    </div>
+                                </div>
+                                <div class="pie-legend" id="pieLegend"></div>
+                            </div>
+                        </div>
+
+                        <!-- 进度条 -->
+                        <div class="chart-card">
+                            <h3 class="chart-title">分类占比</h3>
+                            <div class="bar-chart" id="barChart"></div>
+                        </div>
+                    </div>
+
+                    <!-- 最近上传 -->
+                    <div class="recent-section">
+                        <h3 class="section-heading">
+                            <i class="fas fa-clock"></i>
+                            最近上传
+                        </h3>
+                        <div class="recent-list" id="recentList">
+                            <div class="empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <p>暂无文件</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 文件管理页面 -->
+                <section class="page" id="pageFiles">
+                    <div class="page-header">
+                        <h1 class="page-title">
+                            <i class="fas fa-folder-open"></i>
+                            文件管理
+                        </h1>
+                        <div class="page-actions">
+                            <div class="sort-dropdown">
+                                <button class="sort-btn" id="sortBtn">
+                                    <i class="fas fa-sort"></i>
+                                    <span>排序</span>
+                                </button>
+                                <div class="sort-menu" id="sortMenu">
+                                    <a href="#" class="sort-option active" data-sort="time" data-order="desc">
+                                        <i class="fas fa-clock"></i> 最新上传
+                                    </a>
+                                    <a href="#" class="sort-option" data-sort="time" data-order="asc">
+                                        <i class="fas fa-clock"></i> 最早上传
+                                    </a>
+                                    <a href="#" class="sort-option" data-sort="name" data-order="asc">
+                                        <i class="fas fa-font"></i> 名称 A-Z
+                                    </a>
+                                    <a href="#" class="sort-option" data-sort="name" data-order="desc">
+                                        <i class="fas fa-font"></i> 名称 Z-A
+                                    </a>
+                                    <a href="#" class="sort-option" data-sort="size" data-order="desc">
+                                        <i class="fas fa-weight-hanging"></i> 最大优先
+                                    </a>
+                                    <a href="#" class="sort-option" data-sort="size" data-order="asc">
+                                        <i class="fas fa-weight-hanging"></i> 最小优先
+                                    </a>
+                                    <a href="#" class="sort-option" data-sort="type" data-order="asc">
+                                        <i class="fas fa-tags"></i> 类型分组
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="view-toggle">
+                                <button class="view-btn active" data-view="grid" title="网格视图">
+                                    <i class="fas fa-th-large"></i>
+                                </button>
+                                <button class="view-btn" data-view="list" title="列表视图">
+                                    <i class="fas fa-list"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 文件网格 -->
+                    <div class="file-grid" id="fileGrid">
+                        <div class="empty-state" id="filesEmpty">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>暂无文件</p>
+                            <span>拖拽文件到此处或点击上传按钮</span>
+                        </div>
+                    </div>
+
+                    <!-- 加载动画 -->
+                    <div class="loader" id="fileLoader" style="display:none;">
+                        <div class="loader-spinner"></div>
+                        <span>加载中...</span>
+                    </div>
+                </section>
+
+                <!-- 上传页面 -->
+                <section class="page" id="pageUpload">
+                    <div class="page-header">
+                        <h1 class="page-title">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            上传文件
+                        </h1>
+                    </div>
+
+                    <div class="upload-section">
+                        <div class="upload-zone" id="uploadZone">
+                            <div class="upload-zone-content">
+                                <div class="upload-icon">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                </div>
+                                <h3>拖拽文件到此处上传</h3>
+                                <p>或点击选择文件</p>
+                                <span class="upload-hint">支持所有文件类型，单文件最大 100MB</span>
+                                <input type="file" id="fileInput" multiple style="display:none;">
+                            </div>
+                        </div>
+
+                        <!-- 上传进度 -->
+                        <div class="upload-progress-list" id="uploadProgressList"></div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- 文件预览模态框 -->
+    <div class="modal-overlay" id="previewModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="previewTitle">文件预览</h3>
+                <div class="modal-actions">
+                    <button class="modal-btn" id="previewDownload" title="下载">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button class="modal-btn modal-close" id="previewClose" title="关闭">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-body" id="previewBody">
+                <!-- 预览内容动态插入 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认模态框 -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i>
+                    确认删除
+                </h3>
+            </div>
+            <div class="modal-body">
+                <p>确定要删除文件 <strong id="deleteFileName"></strong> 吗？此操作不可撤销。</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" id="deleteCancel">取消</button>
+                <button class="btn btn-danger" id="deleteConfirm">删除</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
